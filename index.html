@@ -3,136 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Snake Game</title>
+    <title>Two-Player Snake Game</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #111;
+            color: white;
             text-align: center;
-            background-color: #1a1a1a;
-            color: #fff;
+            margin: 0;
+            overflow: hidden;
         }
         canvas {
+            display: block;
+            margin: 20px auto;
             background-color: #222;
-            margin-top: 20px;
-            border: 2px solid #fff;
+            border: 2px solid #444;
         }
         #end-screen {
             display: none;
+            font-size: 2em;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
     </style>
 </head>
 <body>
-    <h1>Multiplayer Snake Game</h1>
+    <h1>Two-Player Snake Game</h1>
     <canvas id="gameCanvas" width="600" height="400"></canvas>
-    <div id="score">Player 1: 0 | Player 2: 0</div>
     <div id="end-screen">
-        <h2 id="winner"></h2>
-        <button id="restart">Restart Game</button>
+        <p id="winner"></p>
+        <button id="restart">Restart</button>
     </div>
+    <p id="score">Player 1: 0 | Player 2: 0</p>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
         const gridSize = 20;
-        const tileCountX = canvas.width / gridSize;
-        const tileCountY = canvas.height / gridSize;
+        let speed = 5;  // Increase this number for slower movement
+        let frameCount = 0;
+        let gameOver = false;
 
-        let snake1 = createSnake(5, 5, 'blue');
-        let snake2 = createSnake(tileCountX - 5, tileCountY - 5, 'green');
-        let food = createFood();
-        let powerUp = createPowerUp();
+        const snake1 = {
+            x: gridSize * 5,
+            y: gridSize * 5,
+            dx: gridSize,
+            dy: 0,
+            color: 'green',
+            tail: [{ x: gridSize * 5, y: gridSize * 5 }],
+            nextDirection: { dx: gridSize, dy: 0 }
+        };
+
+        const snake2 = {
+            x: gridSize * 25,
+            y: gridSize * 25,
+            dx: gridSize,
+            dy: 0,
+            color: 'blue',
+            tail: [{ x: gridSize * 25, y: gridSize * 25 }],
+            nextDirection: { dx: gridSize, dy: 0 }
+        };
+
+        const food = {
+            x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
+            y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
+        };
+
+        const powerUp = {
+            x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
+            y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
+        };
 
         let score1 = 0;
         let score2 = 0;
-        let gameOver = false;
 
-        let speed = 200; // Speed of the game in milliseconds (higher = slower)
-
-        function createSnake(x, y, color) {
-            return {
-                x: x,
-                y: y,
-                dx: 1,
-                dy: 0,
-                tail: [{ x: x, y: y }],
-                color: color,
-                nextDirection: { dx: 1, dy: 0 }
-            };
-        }
-
-        function createFood() {
-            return {
-                x: Math.floor(Math.random() * tileCountX),
-                y: Math.floor(Math.random() * tileCountY)
-            };
-        }
-
-        function createPowerUp() {
-            return {
-                x: Math.floor(Math.random() * tileCountX),
-                y: Math.floor(Math.random() * tileCountY)
-            };
+        function drawSnake(snake) {
+            snake.tail.forEach((segment, index) => {
+                ctx.fillStyle = snake.color;
+                ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
+                ctx.strokeStyle = '#222';
+                ctx.strokeRect(segment.x, segment.y, gridSize, gridSize);
+            });
         }
 
         function drawFood() {
             ctx.fillStyle = 'red';
-            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+            ctx.fillRect(food.x, food.y, gridSize, gridSize);
         }
 
         function drawPowerUp() {
             ctx.fillStyle = 'yellow';
-            ctx.fillRect(powerUp.x * gridSize, powerUp.y * gridSize, gridSize, gridSize);
-        }
-
-        function drawSnake(snake) {
-            ctx.fillStyle = snake.color;
-            for (let segment of snake.tail) {
-                ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-            }
+            ctx.fillRect(powerUp.x, powerUp.y, gridSize, gridSize);
         }
 
         function moveSnake(snake) {
-            snake.dx = snake.nextDirection.dx;
-            snake.dy = snake.nextDirection.dy;
-
-            const newHead = {
-                x: snake.x + snake.dx,
-                y: snake.y + snake.dy
-            };
-
-            // Wrap around the edges
-            if (newHead.x < 0) newHead.x = tileCountX - 1;
-            if (newHead.x >= tileCountX) newHead.x = 0;
-            if (newHead.y < 0) newHead.y = tileCountY - 1;
-            if (newHead.y >= tileCountY) newHead.y = 0;
+            // Move the snake by adding a new head based on its next direction
+            const newHead = { x: snake.x + snake.nextDirection.dx, y: snake.y + snake.nextDirection.dy };
 
             snake.tail.unshift(newHead);
             snake.x = newHead.x;
             snake.y = newHead.y;
+
+            // Remove the tail if no food was eaten
             snake.tail.pop();
         }
 
         function checkFoodCollision(snake) {
             if (snake.x === food.x && snake.y === food.y) {
-                food = createFood();
-                snake.tail.push({}); // Add a new segment
-                if (snake === snake1) score1++;
-                else score2++;
+                // Increase snake length by adding the food position to its tail
+                snake.tail.push({ x: food.x, y: food.y });
+
+                // Reposition the food
+                food.x = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
+                food.y = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
+
+                if (snake === snake1) {
+                    score1++;
+                } else {
+                    score2++;
+                }
                 updateScore();
             }
         }
 
         function checkPowerUpCollision(snake) {
             if (snake.x === powerUp.x && snake.y === powerUp.y) {
-                powerUp = createPowerUp();
-                snake.tail.push({}, {}, {}); // Add extra segments for power-up
+                // Add extra length when power-up is collected
+                snake.tail.push({ x: powerUp.x, y: powerUp.y });
+
+                // Reposition the power-up
+                powerUp.x = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
+                powerUp.y = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
             }
         }
 
         function checkSelfCollision(snake) {
-            for (let i = 1; i < snake.tail.length; i++) {
+            for (let i = 4; i < snake.tail.length; i++) {
                 if (snake.tail[i].x === snake.x && snake.tail[i].y === snake.y) {
-                    declareWinner(snake === snake1 ? 'Green' : 'Blue');
+                    declareWinner(snake === snake1 ? 'Blue' : 'Green');
                 }
             }
         }
@@ -220,29 +231,32 @@
         function gameLoop() {
             if (gameOver) return;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frameCount++;
+            if (frameCount % speed === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            moveSnake(snake1);
-            moveSnake(snake2);
+                moveSnake(snake1);
+                moveSnake(snake2);
 
-            drawFood();
-            drawPowerUp();
-            drawSnake(snake1);
-            drawSnake(snake2);
+                drawFood();
+                drawPowerUp();
+                drawSnake(snake1);
+                drawSnake(snake2);
 
-            checkFoodCollision(snake1);
-            checkFoodCollision(snake2);
+                checkFoodCollision(snake1);
+                checkFoodCollision(snake2);
 
-            checkPowerUpCollision(snake1);
-            checkPowerUpCollision(snake2);
+                checkPowerUpCollision(snake1);
+                checkPowerUpCollision(snake2);
 
-            checkSelfCollision(snake1);
-            checkSelfCollision(snake2);
+                checkSelfCollision(snake1);
+                checkSelfCollision(snake2);
 
-            checkOpponentCollision(snake1, snake2);
-            checkOpponentCollision(snake2, snake1);
+                checkOpponentCollision(snake1, snake2);
+                checkOpponentCollision(snake2, snake1);
+            }
 
-            setTimeout(gameLoop, speed); // Slow down the game loop by using setTimeout with the speed variable
+            requestAnimationFrame(gameLoop);
         }
 
         gameLoop();
