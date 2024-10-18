@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Snake Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #2b2b2b;
+            color: white;
+        }
+
+        canvas {
+            background-color: #000;
+            border: 2px solid #fff;
+            margin-top: 20px;
+        }
+
+        #instructions {
+            margin-top: 20px;
+        }
+
+        h1 {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multiplayer Snake Game</h1>
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="instructions">
+        <h2>Controls</h2>
+        <p>Player 1 (Green Snake): W = Up, A = Left, S = Down, D = Right</p>
+        <p>Player 2 (Blue Snake): Arrow Keys</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        const snake1 = {
+            x: 10,
+            y: 10,
+            dx: 1,
+            dy: 0,
+            tail: [],
+            length: 3,
+            color: 'green',
+            nextDirection: { dx: 1, dy: 0 }
+        };
+
+        const snake2 = {
+            x: 20,
+            y: 20,
+            dx: 1,
+            dy: 0,
+            tail: [],
+            length: 3,
+            color: 'blue',
+            nextDirection: { dx: 1, dy: 0 }
+        };
+
+        let food = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount)
+        };
+
+        function drawFood() {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+        }
+
+        function drawSnake(snake) {
+            ctx.fillStyle = snake.color;
+            snake.tail.forEach(segment => {
+                ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+            });
+            ctx.fillRect(snake.x * gridSize, snake.y * gridSize, gridSize, gridSize);
+        }
+
+        function moveSnake(snake) {
+            // Apply the next direction change before moving
+            snake.dx = snake.nextDirection.dx;
+            snake.dy = snake.nextDirection.dy;
+
+            snake.tail.unshift({ x: snake.x, y: snake.y });
+            if (snake.tail.length > snake.length) {
+                snake.tail.pop();
+            }
+            snake.x += snake.dx;
+            snake.y += snake.dy;
+
+            // Wrap the snake around the canvas edges
+            if (snake.x < 0) snake.x = tileCount - 1;
+            if (snake.x >= tileCount) snake.x = 0;
+            if (snake.y < 0) snake.y = tileCount - 1;
+            if (snake.y >= tileCount) snake.y = 0;
+        }
+
+        function checkFoodCollision(snake) {
+            if (snake.x === food.x && snake.y === food.y) {
+                snake.length++;
+                food.x = Math.floor(Math.random() * tileCount);
+                food.y = Math.floor(Math.random() * tileCount);
+            }
+        }
+
+        function checkSelfCollision(snake) {
+            for (let i = 0; i < snake.tail.length; i++) {
+                if (snake.tail[i].x === snake.x && snake.tail[i].y === snake.y) {
+                    alert(snake.color + ' Snake Lost!');
+                    resetGame();
+                }
+            }
+        }
+
+        function checkOpponentCollision(snake1, snake2) {
+            for (let i = 0; i < snake2.tail.length; i++) {
+                if (snake2.tail[i].x === snake1.x && snake2.tail[i].y === snake1.y) {
+                    alert(snake1.color + ' Snake Lost!');
+                    resetGame();
+                }
+            }
+        }
+
+        function resetGame() {
+            snake1.x = 10;
+            snake1.y = 10;
+            snake1.dx = 1;
+            snake1.dy = 0;
+            snake1.length = 3;
+            snake1.tail = [];
+
+            snake2.x = 20;
+            snake2.y = 20;
+            snake2.dx = 1;
+            snake2.dy = 0;
+            snake2.length = 3;
+            snake2.tail = [];
+
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+        }
+
+        document.addEventListener('keydown', event => {
+            switch (event.key) {
+                // Player 2 (Blue Snake) controls
+                case 'ArrowUp':
+                    if (snake2.dy === 0) {
+                        snake2.nextDirection.dx = 0;
+                        snake2.nextDirection.dy = -1;
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (snake2.dy === 0) {
+                        snake2.nextDirection.dx = 0;
+                        snake2.nextDirection.dy = 1;
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (snake2.dx === 0) {
+                        snake2.nextDirection.dx = -1;
+                        snake2.nextDirection.dy = 0;
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (snake2.dx === 0) {
+                        snake2.nextDirection.dx = 1;
+                        snake2.nextDirection.dy = 0;
+                    }
+                    break;
+
+                // Player 1 (Green Snake) controls
+                case 'w':
+                    if (snake1.dy === 0) {
+                        snake1.nextDirection.dx = 0;
+                        snake1.nextDirection.dy = -1;
+                    }
+                    break;
+                case 's':
+                    if (snake1.dy === 0) {
+                        snake1.nextDirection.dx = 0;
+                        snake1.nextDirection.dy = 1;
+                    }
+                    break;
+                case 'a':
+                    if (snake1.dx === 0) {
+                        snake1.nextDirection.dx = -1;
+                        snake1.nextDirection.dy = 0;
+                    }
+                    break;
+                case 'd':
+                    if (snake1.dx === 0) {
+                        snake1.nextDirection.dx = 1;
+                        snake1.nextDirection.dy = 0;
+                    }
+                    break;
+            }
+        });
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawFood();
+            moveSnake(snake1);
+            moveSnake(snake2);
+            drawSnake(snake1);
+            drawSnake(snake2);
+            checkFoodCollision(snake1);
+            checkFoodCollision(snake2);
+            checkSelfCollision(snake1);
+            checkSelfCollision(snake2);
+            checkOpponentCollision(snake1, snake2);
+            checkOpponentCollision(snake2, snake1);
+        }
+
+        setInterval(gameLoop, 100);
+    </script>
+</body>
+</html>
