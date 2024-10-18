@@ -3,37 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Snake Game</title>
+    <title>Cool Multiplayer Snake Game</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #2b2b2b;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #111;
             color: white;
+            text-align: center;
+            margin: 0;
+            overflow: hidden;
         }
 
         canvas {
-            background-color: #000;
-            border: 2px solid #fff;
-            margin-top: 20px;
+            background-color: #222;
+            border: 5px solid #0f0;
+            margin: 20px auto;
+            display: block;
+            box-shadow: 0px 0px 15px rgba(0, 255, 0, 0.7);
         }
 
-        #instructions {
-            margin-top: 20px;
+        #gameCanvas {
+            background: linear-gradient(135deg, #333 25%, transparent 25%) -50px 0,
+                        linear-gradient(225deg, #333 25%, transparent 25%) -50px 0,
+                        linear-gradient(315deg, #333 25%, transparent 25%),
+                        linear-gradient(45deg, #333 25%, transparent 25%);
+            background-size: 100px 100px;
         }
 
         h1 {
-            color: #28a745;
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
         }
+
+        #instructions h2 {
+            color: #00aaff;
+        }
+
+        #instructions {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: #ccc;
+        }
+
+        p {
+            color: #999;
+            font-size: 1em;
+        }
+
+        /* Snake and food glow effect */
+        .glow {
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+        }
+
+        .snake-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+        }
+
+        .food-glow {
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+        }
+
+        /* Neon Button */
+        button {
+            font-size: 20px;
+            padding: 10px 20px;
+            color: #0f0;
+            background-color: transparent;
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px #0f0, 0 0 20px #00ff00;
+        }
+
+        button:hover {
+            color: #111;
+            background-color: #0f0;
+            box-shadow: 0 0 15px #0f0, 0 0 30px #00ff00;
+        }
+
     </style>
 </head>
 <body>
     <h1>Multiplayer Snake Game</h1>
     <canvas id="gameCanvas" width="600" height="600"></canvas>
     <div id="instructions">
-        <h2>Controls</h2>
-        <p>Player 1 (Green Snake): W = Up, A = Left, S = Down, D = Right</p>
-        <p>Player 2 (Blue Snake): Arrow Keys</p>
+        <h2>How to Play</h2>
+        <p>Player 1 (Green Snake): Use W, A, S, D keys</p>
+        <p>Player 2 (Blue Snake): Use Arrow Keys</p>
     </div>
 
     <script>
@@ -73,21 +131,23 @@
         function drawFood() {
             ctx.fillStyle = 'red';
             ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+            ctx.shadowColor = 'rgba(255, 0, 0, 0.7)';
+            ctx.shadowBlur = 15;
         }
 
         function drawSnake(snake) {
             ctx.fillStyle = snake.color;
             snake.tail.forEach(segment => {
                 ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                ctx.shadowColor = snake.color === 'green' ? 'rgba(0, 255, 0, 0.7)' : 'rgba(0, 150, 255, 0.7)';
+                ctx.shadowBlur = 20;
             });
             ctx.fillRect(snake.x * gridSize, snake.y * gridSize, gridSize, gridSize);
         }
 
         function moveSnake(snake) {
-            // Apply the next direction change before moving
             snake.dx = snake.nextDirection.dx;
             snake.dy = snake.nextDirection.dy;
-
             snake.tail.unshift({ x: snake.x, y: snake.y });
             if (snake.tail.length > snake.length) {
                 snake.tail.pop();
@@ -95,7 +155,6 @@
             snake.x += snake.dx;
             snake.y += snake.dy;
 
-            // Wrap the snake around the canvas edges
             if (snake.x < 0) snake.x = tileCount - 1;
             if (snake.x >= tileCount) snake.x = 0;
             if (snake.y < 0) snake.y = tileCount - 1;
@@ -149,7 +208,6 @@
 
         document.addEventListener('keydown', event => {
             switch (event.key) {
-                // Player 2 (Blue Snake) controls
                 case 'ArrowUp':
                     if (snake2.dy === 0) {
                         snake2.nextDirection.dx = 0;
@@ -174,8 +232,6 @@
                         snake2.nextDirection.dy = 0;
                     }
                     break;
-
-                // Player 1 (Green Snake) controls
                 case 'w':
                     if (snake1.dy === 0) {
                         snake1.nextDirection.dx = 0;
@@ -205,20 +261,27 @@
 
         function gameLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawFood();
+
             moveSnake(snake1);
             moveSnake(snake2);
+
+            drawFood();
             drawSnake(snake1);
             drawSnake(snake2);
+
             checkFoodCollision(snake1);
             checkFoodCollision(snake2);
+
             checkSelfCollision(snake1);
             checkSelfCollision(snake2);
+
             checkOpponentCollision(snake1, snake2);
             checkOpponentCollision(snake2, snake1);
+
+            requestAnimationFrame(gameLoop);
         }
 
-        setInterval(gameLoop, 100);
+        gameLoop();
     </script>
 </body>
 </html>
