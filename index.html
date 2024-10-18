@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cool Multiplayer Snake Game</title>
+    <title>Enhanced Multiplayer Snake Game</title>
     <style>
         body {
             font-family: 'Courier New', Courier, monospace;
@@ -45,14 +45,11 @@
             color: #ccc;
         }
 
-        p {
-            color: #999;
-            font-size: 1em;
-        }
-
-        /* Snake and food glow effect */
-        .glow {
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+        #score {
+            font-size: 20px;
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
+            margin: 10px;
         }
 
         .snake-glow {
@@ -63,7 +60,10 @@
             box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
         }
 
-        /* Neon Button */
+        .power-up-glow {
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.7);
+        }
+
         button {
             font-size: 20px;
             padding: 10px 20px;
@@ -83,15 +83,38 @@
             box-shadow: 0 0 15px #0f0, 0 0 30px #00ff00;
         }
 
+        #end-screen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #111;
+            color: #fff;
+            padding: 50px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        }
+
+        #end-screen button {
+            font-size: 24px;
+            padding: 10px 30px;
+        }
     </style>
 </head>
 <body>
-    <h1>Multiplayer Snake Game</h1>
+    <h1>Enhanced Multiplayer Snake Game</h1>
+    <div id="score">Player 1: 0 | Player 2: 0</div>
     <canvas id="gameCanvas" width="600" height="600"></canvas>
     <div id="instructions">
         <h2>How to Play</h2>
         <p>Player 1 (Green Snake): Use W, A, S, D keys</p>
         <p>Player 2 (Blue Snake): Use Arrow Keys</p>
+    </div>
+    <div id="end-screen">
+        <h1>Game Over!</h1>
+        <p id="winner">Player X Wins!</p>
+        <button id="restart">Restart</button>
     </div>
 
     <script>
@@ -100,6 +123,9 @@
 
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
+
+        let score1 = 0;
+        let score2 = 0;
 
         const snake1 = {
             x: 10,
@@ -128,11 +154,28 @@
             y: Math.floor(Math.random() * tileCount)
         };
 
+        let powerUp = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount),
+            active: false
+        };
+
+        let gameOver = false;
+
         function drawFood() {
             ctx.fillStyle = 'red';
             ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
             ctx.shadowColor = 'rgba(255, 0, 0, 0.7)';
             ctx.shadowBlur = 15;
+        }
+
+        function drawPowerUp() {
+            if (powerUp.active) {
+                ctx.fillStyle = 'yellow';
+                ctx.fillRect(powerUp.x * gridSize, powerUp.y * gridSize, gridSize, gridSize);
+                ctx.shadowColor = 'rgba(255, 255, 0, 0.7)';
+                ctx.shadowBlur = 20;
+            }
         }
 
         function drawSnake(snake) {
@@ -166,14 +209,29 @@
                 snake.length++;
                 food.x = Math.floor(Math.random() * tileCount);
                 food.y = Math.floor(Math.random() * tileCount);
+                powerUp.active = Math.random() < 0.2; // 20% chance of spawning power-up
+
+                if (snake.color === 'green') {
+                    score1++;
+                } else {
+                    score2++;
+                }
+
+                updateScore();
+            }
+        }
+
+        function checkPowerUpCollision(snake) {
+            if (powerUp.active && snake.x === powerUp.x && snake.y === powerUp.y) {
+                snake.length += 2;  // Gain extra length
+                powerUp.active = false;
             }
         }
 
         function checkSelfCollision(snake) {
             for (let i = 0; i < snake.tail.length; i++) {
                 if (snake.tail[i].x === snake.x && snake.tail[i].y === snake.y) {
-                    alert(snake.color + ' Snake Lost!');
-                    resetGame();
+                    declareWinner(snake.color === 'green' ? 'Blue' : 'Green');
                 }
             }
         }
@@ -181,57 +239,30 @@
         function checkOpponentCollision(snake1, snake2) {
             for (let i = 0; i < snake2.tail.length; i++) {
                 if (snake2.tail[i].x === snake1.x && snake2.tail[i].y === snake1.y) {
-                    alert(snake1.color + ' Snake Lost!');
-                    resetGame();
+                    declareWinner(snake2.color === 'blue' ? 'Blue' : 'Green');
                 }
             }
         }
 
-        function resetGame() {
-            snake1.x = 10;
-            snake1.y = 10;
-            snake1.dx = 1;
-            snake1.dy = 0;
-            snake1.length = 3;
-            snake1.tail = [];
-
-            snake2.x = 20;
-            snake2.y = 20;
-            snake2.dx = 1;
-            snake2.dy = 0;
-            snake2.length = 3;
-            snake2.tail = [];
-
-            food.x = Math.floor(Math.random() * tileCount);
-            food.y = Math.floor(Math.random() * tileCount);
+        function updateScore() {
+            document.getElementById('score').innerText = `Player 1: ${score1} | Player 2: ${score2}`;
         }
 
-        document.addEventListener('keydown', event => {
+        function declareWinner(winner) {
+            document.getElementById('winner').innerText = `${winner} Player Wins!`;
+            document.getElementById('end-screen').style.display = 'block';
+            gameOver = true;
+        }
+
+        document.getElementById('restart').addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (gameOver) return;
+
             switch (event.key) {
-                case 'ArrowUp':
-                    if (snake2.dy === 0) {
-                        snake2.nextDirection.dx = 0;
-                        snake2.nextDirection.dy = -1;
-                    }
-                    break;
-                case 'ArrowDown':
-                    if (snake2.dy === 0) {
-                        snake2.nextDirection.dx = 0;
-                        snake2.nextDirection.dy = 1;
-                    }
-                    break;
-                case 'ArrowLeft':
-                    if (snake2.dx === 0) {
-                        snake2.nextDirection.dx = -1;
-                        snake2.nextDirection.dy = 0;
-                    }
-                    break;
-                case 'ArrowRight':
-                    if (snake2.dx === 0) {
-                        snake2.nextDirection.dx = 1;
-                        snake2.nextDirection.dy = 0;
-                    }
-                    break;
+                // Player 1 controls (WASD)
                 case 'w':
                     if (snake1.dy === 0) {
                         snake1.nextDirection.dx = 0;
@@ -256,21 +287,53 @@
                         snake1.nextDirection.dy = 0;
                     }
                     break;
+
+                // Player 2 controls (Arrow Keys)
+                case 'ArrowUp':
+                    if (snake2.dy === 0) {
+                        snake2.nextDirection.dx = 0;
+                        snake2.nextDirection.dy = -1;
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (snake2.dy === 0) {
+                        snake2.nextDirection.dx = 0;
+                        snake2.nextDirection.dy = 1;
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (snake2.dx === 0) {
+                        snake2.nextDirection.dx = -1;
+                        snake2.nextDirection.dy = 0;
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (snake2.dx === 0) {
+                        snake2.nextDirection.dx = 1;
+                        snake2.nextDirection.dy = 0;
+                    }
+                    break;
             }
         });
 
         function gameLoop() {
+            if (gameOver) return;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             moveSnake(snake1);
             moveSnake(snake2);
 
             drawFood();
+            drawPowerUp();
             drawSnake(snake1);
             drawSnake(snake2);
 
             checkFoodCollision(snake1);
             checkFoodCollision(snake2);
+
+            checkPowerUpCollision(snake1);
+            checkPowerUpCollision(snake2);
 
             checkSelfCollision(snake1);
             checkSelfCollision(snake2);
