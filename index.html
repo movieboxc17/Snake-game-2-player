@@ -3,235 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Multiplayer Snake Game</title>
+    <title>Multiplayer Snake Game</title>
     <style>
         body {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #111;
-            color: white;
+            font-family: Arial, sans-serif;
             text-align: center;
-            margin: 0;
-            overflow: hidden;
+            background-color: #1a1a1a;
+            color: #fff;
         }
-
         canvas {
             background-color: #222;
-            border: 5px solid #0f0;
-            margin: 20px auto;
-            display: block;
-            box-shadow: 0px 0px 15px rgba(0, 255, 0, 0.7);
-        }
-
-        #gameCanvas {
-            background: linear-gradient(135deg, #333 25%, transparent 25%) -50px 0,
-                        linear-gradient(225deg, #333 25%, transparent 25%) -50px 0,
-                        linear-gradient(315deg, #333 25%, transparent 25%),
-                        linear-gradient(45deg, #333 25%, transparent 25%);
-            background-size: 100px 100px;
-        }
-
-        h1 {
-            color: #0f0;
-            text-shadow: 0 0 10px #0f0;
-        }
-
-        #instructions h2 {
-            color: #00aaff;
-        }
-
-        #instructions {
-            margin-top: 10px;
-            font-size: 1.2em;
-            color: #ccc;
-        }
-
-        #score {
-            font-size: 20px;
-            color: #0f0;
-            text-shadow: 0 0 10px #0f0;
-            margin: 10px;
-        }
-
-        .snake-glow {
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
-        }
-
-        .food-glow {
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
-        }
-
-        .power-up-glow {
-            box-shadow: 0 0 20px rgba(255, 255, 0, 0.7);
-        }
-
-        button {
-            font-size: 20px;
-            padding: 10px 20px;
-            color: #0f0;
-            background-color: transparent;
-            border: 2px solid #0f0;
-            border-radius: 10px;
-            cursor: pointer;
             margin-top: 20px;
-            transition: all 0.3s;
-            box-shadow: 0 0 10px #0f0, 0 0 20px #00ff00;
+            border: 2px solid #fff;
         }
-
-        button:hover {
-            color: #111;
-            background-color: #0f0;
-            box-shadow: 0 0 15px #0f0, 0 0 30px #00ff00;
-        }
-
         #end-screen {
             display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #111;
-            color: #fff;
-            padding: 50px;
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
-        }
-
-        #end-screen button {
-            font-size: 24px;
-            padding: 10px 30px;
         }
     </style>
 </head>
 <body>
-    <h1>Enhanced Multiplayer Snake Game</h1>
+    <h1>Multiplayer Snake Game</h1>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
     <div id="score">Player 1: 0 | Player 2: 0</div>
-    <canvas id="gameCanvas" width="600" height="600"></canvas>
-    <div id="instructions">
-        <h2>How to Play</h2>
-        <p>Player 1 (Green Snake): Use W, A, S, D keys</p>
-        <p>Player 2 (Blue Snake): Use Arrow Keys</p>
-    </div>
     <div id="end-screen">
-        <h1>Game Over!</h1>
-        <p id="winner">Player X Wins!</p>
-        <button id="restart">Restart</button>
+        <h2 id="winner"></h2>
+        <button id="restart">Restart Game</button>
     </div>
-
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
         const gridSize = 20;
-        const tileCount = canvas.width / gridSize;
+        const tileCountX = canvas.width / gridSize;
+        const tileCountY = canvas.height / gridSize;
+
+        let snake1 = createSnake(5, 5, 'blue');
+        let snake2 = createSnake(tileCountX - 5, tileCountY - 5, 'green');
+        let food = createFood();
+        let powerUp = createPowerUp();
 
         let score1 = 0;
         let score2 = 0;
-
-        const snake1 = {
-            x: 10,
-            y: 10,
-            dx: 1,
-            dy: 0,
-            tail: [],
-            length: 3,
-            color: 'green',
-            nextDirection: { dx: 1, dy: 0 }
-        };
-
-        const snake2 = {
-            x: 20,
-            y: 20,
-            dx: 1,
-            dy: 0,
-            tail: [],
-            length: 3,
-            color: 'blue',
-            nextDirection: { dx: 1, dy: 0 }
-        };
-
-        let food = {
-            x: Math.floor(Math.random() * tileCount),
-            y: Math.floor(Math.random() * tileCount)
-        };
-
-        let powerUp = {
-            x: Math.floor(Math.random() * tileCount),
-            y: Math.floor(Math.random() * tileCount),
-            active: false
-        };
-
         let gameOver = false;
+
+        let speed = 200; // Speed of the game in milliseconds (higher = slower)
+
+        function createSnake(x, y, color) {
+            return {
+                x: x,
+                y: y,
+                dx: 1,
+                dy: 0,
+                tail: [{ x: x, y: y }],
+                color: color,
+                nextDirection: { dx: 1, dy: 0 }
+            };
+        }
+
+        function createFood() {
+            return {
+                x: Math.floor(Math.random() * tileCountX),
+                y: Math.floor(Math.random() * tileCountY)
+            };
+        }
+
+        function createPowerUp() {
+            return {
+                x: Math.floor(Math.random() * tileCountX),
+                y: Math.floor(Math.random() * tileCountY)
+            };
+        }
 
         function drawFood() {
             ctx.fillStyle = 'red';
             ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
-            ctx.shadowColor = 'rgba(255, 0, 0, 0.7)';
-            ctx.shadowBlur = 15;
         }
 
         function drawPowerUp() {
-            if (powerUp.active) {
-                ctx.fillStyle = 'yellow';
-                ctx.fillRect(powerUp.x * gridSize, powerUp.y * gridSize, gridSize, gridSize);
-                ctx.shadowColor = 'rgba(255, 255, 0, 0.7)';
-                ctx.shadowBlur = 20;
-            }
+            ctx.fillStyle = 'yellow';
+            ctx.fillRect(powerUp.x * gridSize, powerUp.y * gridSize, gridSize, gridSize);
         }
 
         function drawSnake(snake) {
             ctx.fillStyle = snake.color;
-            snake.tail.forEach(segment => {
+            for (let segment of snake.tail) {
                 ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-                ctx.shadowColor = snake.color === 'green' ? 'rgba(0, 255, 0, 0.7)' : 'rgba(0, 150, 255, 0.7)';
-                ctx.shadowBlur = 20;
-            });
-            ctx.fillRect(snake.x * gridSize, snake.y * gridSize, gridSize, gridSize);
+            }
         }
 
         function moveSnake(snake) {
             snake.dx = snake.nextDirection.dx;
             snake.dy = snake.nextDirection.dy;
-            snake.tail.unshift({ x: snake.x, y: snake.y });
-            if (snake.tail.length > snake.length) {
-                snake.tail.pop();
-            }
-            snake.x += snake.dx;
-            snake.y += snake.dy;
 
-            if (snake.x < 0) snake.x = tileCount - 1;
-            if (snake.x >= tileCount) snake.x = 0;
-            if (snake.y < 0) snake.y = tileCount - 1;
-            if (snake.y >= tileCount) snake.y = 0;
+            const newHead = {
+                x: snake.x + snake.dx,
+                y: snake.y + snake.dy
+            };
+
+            // Wrap around the edges
+            if (newHead.x < 0) newHead.x = tileCountX - 1;
+            if (newHead.x >= tileCountX) newHead.x = 0;
+            if (newHead.y < 0) newHead.y = tileCountY - 1;
+            if (newHead.y >= tileCountY) newHead.y = 0;
+
+            snake.tail.unshift(newHead);
+            snake.x = newHead.x;
+            snake.y = newHead.y;
+            snake.tail.pop();
         }
 
         function checkFoodCollision(snake) {
             if (snake.x === food.x && snake.y === food.y) {
-                snake.length++;
-                food.x = Math.floor(Math.random() * tileCount);
-                food.y = Math.floor(Math.random() * tileCount);
-                powerUp.active = Math.random() < 0.2; // 20% chance of spawning power-up
-
-                if (snake.color === 'green') {
-                    score1++;
-                } else {
-                    score2++;
-                }
-
+                food = createFood();
+                snake.tail.push({}); // Add a new segment
+                if (snake === snake1) score1++;
+                else score2++;
                 updateScore();
             }
         }
 
         function checkPowerUpCollision(snake) {
-            if (powerUp.active && snake.x === powerUp.x && snake.y === powerUp.y) {
-                snake.length += 2;  // Gain extra length
-                powerUp.active = false;
+            if (snake.x === powerUp.x && snake.y === powerUp.y) {
+                powerUp = createPowerUp();
+                snake.tail.push({}, {}, {}); // Add extra segments for power-up
             }
         }
 
         function checkSelfCollision(snake) {
-            for (let i = 0; i < snake.tail.length; i++) {
+            for (let i = 1; i < snake.tail.length; i++) {
                 if (snake.tail[i].x === snake.x && snake.tail[i].y === snake.y) {
-                    declareWinner(snake.color === 'green' ? 'Blue' : 'Green');
+                    declareWinner(snake === snake1 ? 'Green' : 'Blue');
                 }
             }
         }
@@ -341,7 +242,7 @@
             checkOpponentCollision(snake1, snake2);
             checkOpponentCollision(snake2, snake1);
 
-            requestAnimationFrame(gameLoop);
+            setTimeout(gameLoop, speed); // Slow down the game loop by using setTimeout with the speed variable
         }
 
         gameLoop();
